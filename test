@@ -1,0 +1,196 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>GDP Đông Nam Á Race</title>
+    <!-- Nhúng thư viện Apache ECharts từ CDN -->
+    <script src="https://cdn.jsdelivr.net/npm/echarts@5.4.3/dist/echarts.min.js"></script>
+    <style>
+        body { margin: 0; padding: 20px; font-family: 'Arial', sans-serif; background-color: #f5f5f5; }
+        #chart-container { width: 100%; height: 600px; background: #fff; border-radius: 10px; box-shadow: 0 4px 12px rgba(0,0,0,0.1); }
+        h2 { text-align: center; color: #333; margin-bottom: 5px; }
+        p { text-align: center; color: #666; font-size: 0.9em; margin-top: 0; }
+        .controls { text-align: center; margin-top: 10px; }
+        button { padding: 8px 16px; cursor: pointer; background: #007bff; color: white; border: none; border-radius: 4px; font-size: 14px; }
+        button:hover { background: #0056b3; }
+    </style>
+</head>
+<body>
+
+    <h2>Đua Top GDP Đông Nam Á (2014 - 2024)</h2>
+    <p>Đơn vị: Tỷ USD (Nominal) - Nguồn: World Bank/IMF</p>
+    <div id="chart-container"></div>
+    <div class="controls">
+        <button onclick="runAnimation()">Phát Lại (Replay)</button>
+    </div>
+
+    <script>
+        // 1. DỮ LIỆU GỐC (Từ bảng bạn cung cấp)
+        const years = [2014, 2015, 2016, 2017, 2018, 2019, 2020, 2021, 2022, 2023, 2024];
+        
+        // Dữ liệu thô (Raw Data)
+        const rawData = {
+            'Indonesia 🇮🇩': [890.82, 860.85, 931.88, 1015.62, 1042.27, 1119.10, 1059.05, 1186.51, 1319.08, 1371.17, 1404.45],
+            'Thái Lan 🇹🇭': [407.34, 401.29, 411.73, 455.38, 506.53, 544.29, 500.46, 506.26, 495.65, 514.84, 526.41],
+            'Singapore 🇸🇬': [314.86, 308.05, 318.90, 346.42, 375.40, 395.66, 340.06, 396.99, 466.79, 501.43, 547.39],
+            'Philippines 🇵🇭': [284.93, 293.00, 304.91, 328.48, 346.84, 376.80, 361.75, 393.74, 404.26, 437.15, 461.62],
+            'Việt Nam 🇻🇳': [233.45, 239.26, 257.10, 281.35, 310.11, 334.37, 346.62, 366.48, 410.32, 429.72, 476.39],
+            'Malaysia 🇲🇾': [338.06, 301.42, 301.36, 320.11, 358.58, 365.30, 336.66, 372.70, 407.92, 399.71, 419.62],
+            'Myanmar 🇲🇲': [67.55, 64.33, 63.02, 67.41, 71.40, 76.19, 76.99, 66.35, 62.25, 66.76, 64.28],
+            'Campuchia 🇰🇭': [18.05, 18.05, 20.02, 22.16, 24.54, 27.09, 26.96, 26.96, 29.95, 32.35, 47.15],
+            'Lào 🇱🇦': [13.27, 13.78, 15.91, 17.07, 18.17, 18.83, 19.14, 19.28, 13.85, 14.05, 14.95],
+            'Brunei 🇧🇳': [17.10, 13.01, 11.40, 12.13, 13.57, 13.47, 12.00, 14.01, 16.64, 15.13, 15.71]
+        };
+
+        // Màu sắc riêng cho từng nước (Bold colors)
+        const colors = {
+            'Indonesia 🇮🇩': '#d62d20',
+            'Thái Lan 🇹🇭': '#2d4059',
+            'Singapore 🇸🇬': '#ea4335',
+            'Philippines 🇵🇭': '#0038a8',
+            'Việt Nam 🇻🇳': '#da251d', // Đỏ cờ đỏ sao vàng
+            'Malaysia 🇲🇾': '#f1c40f',
+            'Myanmar 🇲🇲': '#27ae60',
+            'Campuchia 🇰🇭': '#8e44ad',
+            'Lào 🇱🇦': '#2980b9',
+            'Brunei 🇧🇳': '#f39c12'
+        };
+
+        // Khởi tạo biểu đồ
+        var chartDom = document.getElementById('chart-container');
+        var myChart = echarts.init(chartDom);
+        var option;
+        
+        // Tốc độ update (ms)
+        const updateFrequency = 1500; 
+
+        // Hàm lấy dữ liệu theo năm và sắp xếp (Sort)
+        function getDataByYear(yearIndex) {
+            let dataArr = [];
+            for (let country in rawData) {
+                dataArr.push({
+                    name: country,
+                    value: rawData[country][yearIndex],
+                    itemStyle: { color: colors[country] }
+                });
+            }
+            // Sắp xếp tăng dần để ECharts hiển thị đúng (lớn nhất ở trên cùng trong category)
+            dataArr.sort((a, b) => a.value - b.value);
+            return dataArr;
+        }
+
+        // Cấu hình ban đầu
+        option = {
+            grid: { top: 30, bottom: 30, left: 150, right: 80 },
+            xAxis: {
+                max: 'dataMax',
+                axisLabel: {
+                    formatter: function (n) { return Math.round(n) + ''; }
+                },
+                splitLine: { show: true, lineStyle: { type: 'dashed' } }
+            },
+            yAxis: {
+                type: 'category',
+                inverse: true, // Đảo ngược để Top 1 ở trên
+                max: 9, // Hiển thị 10 nước (index 0-9)
+                axisLabel: {
+                    show: true,
+                    fontSize: 14,
+                    fontWeight: 'bold',
+                    formatter: function (value) {
+                        return value; 
+                    }
+                },
+                animationDuration: 300,
+                animationDurationUpdate: 300
+            },
+            series: [{
+                realtimeSort: true,
+                seriesLayoutBy: 'column',
+                type: 'bar',
+                data: [], // Sẽ được điền sau
+                label: {
+                    show: true,
+                    position: 'right',
+                    valueAnimation: true,
+                    fontFamily: 'monospace',
+                    fontWeight: 'bold',
+                    fontSize: 14,
+                    formatter: function(params) {
+                        return params.value.toFixed(1);
+                    }
+                },
+                barWidth: '70%',
+                itemStyle: {
+                    borderRadius: [0, 5, 5, 0]
+                }
+            }],
+            // Hiệu ứng chuyển động
+            animationDuration: 0,
+            animationDurationUpdate: updateFrequency,
+            animationEasing: 'linear',
+            animationEasingUpdate: 'linear',
+            graphic: {
+                elements: [{
+                    type: 'text',
+                    right: 60,
+                    bottom: 60,
+                    style: {
+                        text: years[0],
+                        font: 'bolder 80px monospace',
+                        fill: 'rgba(100, 100, 100, 0.25)'
+                    },
+                    z: 100
+                }]
+            }
+        };
+
+        // Hàm chạy animation
+        function runAnimation() {
+            let yearIndex = 0;
+            
+            // Set năm đầu tiên
+            let initialData = getDataByYear(0);
+            option.yAxis.data = initialData.map(item => item.name); // Cập nhật nhãn trục Y
+            option.series[0].data = initialData;
+            option.graphic.elements[0].style.text = years[0];
+            myChart.setOption(option);
+
+            // Loop qua các năm
+            let intervalId = setInterval(function () {
+                yearIndex++;
+                if (yearIndex >= years.length) {
+                    clearInterval(intervalId);
+                    return;
+                }
+
+                let currentData = getDataByYear(yearIndex);
+                
+                myChart.setOption({
+                    yAxis: {
+                        data: currentData.map(item => item.name) // Cập nhật tên nước theo thứ tự mới
+                    },
+                    series: [{
+                        data: currentData
+                    }],
+                    graphic: {
+                        elements: [{
+                            style: {
+                                text: years[yearIndex]
+                            }
+                        }]
+                    }
+                });
+            }, updateFrequency);
+        }
+
+        // Chạy lần đầu
+        runAnimation();
+
+        // Responsive khi đổi kích thước màn hình
+        window.addEventListener('resize', myChart.resize);
+
+    </script>
+</body>
+</html>
